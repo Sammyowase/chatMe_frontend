@@ -5,7 +5,6 @@ import { io } from "socket.io-client";
 
 const BASE_URL = "https://chatme-backend-nyim.onrender.com";
 
-
 export const useAuthStore = create((set, get) => ({
   authUser: null,
   isSigningUp: false,
@@ -18,6 +17,7 @@ export const useAuthStore = create((set, get) => ({
   checkAuth: async () => {
     try {
       const res = await axiosInstance.get("/auth/check");
+      if (!res.data) return;
 
       set({ authUser: res.data });
       get().connectSocket();
@@ -37,7 +37,9 @@ export const useAuthStore = create((set, get) => ({
       toast.success("Account created successfully");
       get().connectSocket();
     } catch (error) {
-      toast.error(error.response.data.message);
+      const errorMessage =
+        error.response?.data?.message || "Something went wrong. Please try again.";
+      toast.error(errorMessage);
     } finally {
       set({ isSigningUp: false });
     }
@@ -52,7 +54,9 @@ export const useAuthStore = create((set, get) => ({
 
       get().connectSocket();
     } catch (error) {
-      toast.error(error.response.data.message);
+      const errorMessage =
+        error.response?.data?.message || "Something went wrong. Please try again.";
+      toast.error(errorMessage);
     } finally {
       set({ isLoggingIn: false });
     }
@@ -65,7 +69,9 @@ export const useAuthStore = create((set, get) => ({
       toast.success("Logged out successfully");
       get().disconnectSocket();
     } catch (error) {
-      toast.error(error.response.data.message);
+      const errorMessage =
+        error.response?.data?.message || "Something went wrong. Please try again.";
+      toast.error(errorMessage);
     }
   },
 
@@ -77,30 +83,40 @@ export const useAuthStore = create((set, get) => ({
       toast.success("Profile updated successfully");
     } catch (error) {
       console.log("error in update profile:", error);
-      toast.error(error.response.data.message);
+      const errorMessage =
+        error.response?.data?.message || "Something went wrong. Please try again.";
+      toast.error(errorMessage);
     } finally {
       set({ isUpdatingProfile: false });
     }
   },
 
   connectSocket: () => {
-    const { authUser } = get();
-    if (!authUser || get().socket?.connected) return;
+    const { authUser, socket } = get();
+    if (!authUser) return;
 
-    const socket = io(BASE_URL, {
+    if (socket?.connected) {
+      socket.disconnect();
+    }
+
+    const newSocket = io(BASE_URL, {
       query: {
         userId: authUser._id,
       },
     });
-    socket.connect();
 
-    set({ socket: socket });
+    newSocket.connect();
+    set({ socket: newSocket });
 
-    socket.on("getOnlineUsers", (userIds) => {
+    newSocket.on("getOnlineUsers", (userIds) => {
       set({ onlineUsers: userIds });
     });
   },
+
   disconnectSocket: () => {
-    if (get().socket?.connected) get().socket.disconnect();
+    if (get().socket?.connected) {
+      get().socket.disconnect();
+    }
+    set({ onlineUsers: [] }); // Clear online users when disconnecting
   },
 }));
