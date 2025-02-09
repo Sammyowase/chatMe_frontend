@@ -16,7 +16,8 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.get("/api/messages/users");
       set({ users: res.data });
     } catch (error) {
-      toast.error(error.response.data.message);
+      const errorMessage = error.response?.data?.message || "Something went wrong!";
+      toast.error(errorMessage);
     } finally {
       set({ isUsersLoading: false });
     }
@@ -28,26 +29,34 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.get(`/api/messages/${userId}`);
       set({ messages: res.data });
     } catch (error) {
-      toast.error(error.response.data.message);
+      const errorMessage = error.response?.data?.message || "Something went wrong!";
+      toast.error(errorMessage);
     } finally {
       set({ isMessagesLoading: false });
     }
   },
+
   sendMessage: async (messageData) => {
     const { selectedUser, messages } = get();
     try {
       const res = await axiosInstance.post(`/api/messages/send/${selectedUser._id}`, messageData);
-      set({ messages: [...messages, res.data] });
+      set((state) => ({
+        messages: [...state.messages, res.data],
+      }));
     } catch (error) {
-      toast.error(error.response.data.message);
+      const errorMessage = error.response?.data?.message || "Something went wrong!";
+      toast.error(errorMessage);
     }
   },
 
   subscribeToMessages: () => {
     const { selectedUser } = get();
-    if (!selectedUser) return;
-
     const socket = useAuthStore.getState().socket;
+
+    if (!selectedUser || !socket) return; // Guard clause to ensure socket is available
+
+    // Unsubscribe from the previous user
+    get().unsubscribeFromMessages();
 
     socket.on("newMessage", (newMessage) => {
       const isMessageSentFromSelectedUser = newMessage.senderId === selectedUser._id;
