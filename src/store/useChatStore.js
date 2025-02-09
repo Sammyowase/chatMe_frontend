@@ -14,7 +14,7 @@ export const useChatStore = create((set, get) => ({
     set({ isUsersLoading: true });
     try {
       const token = localStorage.getItem("jwtToken");
-      const res = await axiosInstance.get("/api/messages/users", {
+      const res = await axiosInstance.get("/messages/users", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -32,7 +32,7 @@ export const useChatStore = create((set, get) => ({
     set({ isMessagesLoading: true });
     try {
       const token = localStorage.getItem("jwtToken");
-      const res = await axiosInstance.get(`/api/messages/${userId}`, {
+      const res = await axiosInstance.get(`/messages/${userId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -50,7 +50,7 @@ export const useChatStore = create((set, get) => ({
     const { selectedUser, messages } = get();
     try {
       const token = localStorage.getItem("jwtToken");
-      const res = await axiosInstance.post(`/api/messages/send/${selectedUser._id}`, messageData, {
+      const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

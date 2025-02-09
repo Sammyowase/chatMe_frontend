@@ -14,6 +14,7 @@ export const useAuthStore = create((set, get) => ({
   onlineUsers: [],
   socket: null,
 
+  // Check authentication and handle socket connection
   checkAuth: async () => {
     try {
       const token = localStorage.getItem("jwtToken");
@@ -25,20 +26,21 @@ export const useAuthStore = create((set, get) => ({
         },
       });
 
-      if (!res.data) return;
-
-      set({ authUser: res.data });
-      get().connectSocket();
+      if (res.data) {
+        set({ authUser: res.data });
+        get().connectSocket();
+      }
     } catch (error) {
-      console.log("Error in checkAuth:", error);
+      console.error("Error in checkAuth:", error);
       set({ authUser: null });
       localStorage.removeItem("authUser");
-      localStorage.removeItem("jwtToken"); // Clear the JWT token
+      localStorage.removeItem("jwtToken");
     } finally {
       set({ isCheckingAuth: false });
     }
   },
 
+  // Sign up user
   signup: async (data) => {
     set({ isSigningUp: true });
     try {
@@ -57,6 +59,7 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  // Login user
   login: async (data) => {
     set({ isLoggingIn: true });
     try {
@@ -75,6 +78,7 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  // Logout user
   logout: async () => {
     try {
       await axiosInstance.post("/api/auth/logout");
@@ -90,6 +94,7 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  // Update user profile
   updateProfile: async (data) => {
     set({ isUpdatingProfile: true });
     try {
@@ -103,7 +108,7 @@ export const useAuthStore = create((set, get) => ({
       localStorage.setItem("authUser", JSON.stringify(res.data)); // Save updated user info
       toast.success("Profile updated successfully");
     } catch (error) {
-      console.log("error in update profile:", error);
+      console.log("Error in updateProfile:", error);
       const errorMessage =
         error.response?.data?.message || "Something went wrong. Please try again.";
       toast.error(errorMessage);
@@ -112,10 +117,12 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  // Connect to socket and handle online users
   connectSocket: () => {
     const { authUser, socket } = get();
     if (!authUser) return;
 
+    // Ensure a new socket connection is created if it doesn't exist or is disconnected
     if (socket?.connected) {
       socket.disconnect();
     }
@@ -129,15 +136,18 @@ export const useAuthStore = create((set, get) => ({
     newSocket.connect();
     set({ socket: newSocket });
 
+    // Listen for online users
     newSocket.on("getOnlineUsers", (userIds) => {
       set({ onlineUsers: userIds });
     });
   },
 
+  // Disconnect from socket
   disconnectSocket: () => {
-    if (get().socket?.connected) {
-      get().socket.disconnect();
+    const { socket } = get();
+    if (socket?.connected) {
+      socket.disconnect();
     }
-    set({ onlineUsers: [] });
+    set({ onlineUsers: [], socket: null });
   },
 }));
