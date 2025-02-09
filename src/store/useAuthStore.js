@@ -6,7 +6,7 @@ import { io } from "socket.io-client";
 const BASE_URL = "https://chatme-backend-nyim.onrender.com";
 
 export const useAuthStore = create((set, get) => ({
-  authUser: null,
+  authUser: JSON.parse(localStorage.getItem("authUser")) || null,
   isSigningUp: false,
   isLoggingIn: false,
   isUpdatingProfile: false,
@@ -16,7 +16,15 @@ export const useAuthStore = create((set, get) => ({
 
   checkAuth: async () => {
     try {
-      const res = await axiosInstance.get("/api/auth/check");
+      const token = localStorage.getItem("jwtToken");
+      if (!token) return set({ isCheckingAuth: false });
+
+      const res = await axiosInstance.get("/api/auth/check", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       if (!res.data) return;
 
       set({ authUser: res.data });
@@ -24,6 +32,8 @@ export const useAuthStore = create((set, get) => ({
     } catch (error) {
       console.log("Error in checkAuth:", error);
       set({ authUser: null });
+      localStorage.removeItem("authUser");
+      localStorage.removeItem("jwtToken"); // Clear the JWT token
     } finally {
       set({ isCheckingAuth: false });
     }
@@ -33,7 +43,9 @@ export const useAuthStore = create((set, get) => ({
     set({ isSigningUp: true });
     try {
       const res = await axiosInstance.post("/api/auth/signup", data);
-      set({ authUser: res.data });
+      set({ authUser: res.data.user });
+      localStorage.setItem("authUser", JSON.stringify(res.data.user));
+      localStorage.setItem("jwtToken", res.data.token); // Save JWT token
       toast.success("Account created successfully");
       get().connectSocket();
     } catch (error) {
@@ -49,9 +61,10 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoggingIn: true });
     try {
       const res = await axiosInstance.post("/api/auth/login", data);
-      set({ authUser: res.data });
+      set({ authUser: res.data.user });
+      localStorage.setItem("authUser", JSON.stringify(res.data.user));
+      localStorage.setItem("jwtToken", res.data.token); // Save JWT token
       toast.success("Logged in successfully");
-
       get().connectSocket();
     } catch (error) {
       const errorMessage =
@@ -66,6 +79,8 @@ export const useAuthStore = create((set, get) => ({
     try {
       await axiosInstance.post("/api/auth/logout");
       set({ authUser: null });
+      localStorage.removeItem("authUser");
+      localStorage.removeItem("jwtToken"); // Clear JWT token
       toast.success("Logged out successfully");
       get().disconnectSocket();
     } catch (error) {
@@ -78,8 +93,14 @@ export const useAuthStore = create((set, get) => ({
   updateProfile: async (data) => {
     set({ isUpdatingProfile: true });
     try {
-      const res = await axiosInstance.put("/api/auth/update-profile", data);
+      const token = localStorage.getItem("jwtToken");
+      const res = await axiosInstance.put("/api/auth/update-profile", data, {
+        headers: {
+          Authorization: `Bearer ${token}`, // Add JWT token to request headers
+        },
+      });
       set({ authUser: res.data });
+      localStorage.setItem("authUser", JSON.stringify(res.data)); // Save updated user info
       toast.success("Profile updated successfully");
     } catch (error) {
       console.log("error in update profile:", error);
@@ -117,6 +138,6 @@ export const useAuthStore = create((set, get) => ({
     if (get().socket?.connected) {
       get().socket.disconnect();
     }
-    set({ onlineUsers: [] }); 
+    set({ onlineUsers: [] });
   },
 }));

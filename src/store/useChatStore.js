@@ -13,7 +13,12 @@ export const useChatStore = create((set, get) => ({
   getUsers: async () => {
     set({ isUsersLoading: true });
     try {
-      const res = await axiosInstance.get("/api/messages/users");
+      const token = localStorage.getItem("jwtToken");
+      const res = await axiosInstance.get("/api/messages/users", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       set({ users: res.data });
     } catch (error) {
       const errorMessage = error.response?.data?.message || "Something went wrong!";
@@ -26,7 +31,12 @@ export const useChatStore = create((set, get) => ({
   getMessages: async (userId) => {
     set({ isMessagesLoading: true });
     try {
-      const res = await axiosInstance.get(`/api/messages/${userId}`);
+      const token = localStorage.getItem("jwtToken");
+      const res = await axiosInstance.get(`/api/messages/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       set({ messages: res.data });
     } catch (error) {
       const errorMessage = error.response?.data?.message || "Something went wrong!";
@@ -39,7 +49,12 @@ export const useChatStore = create((set, get) => ({
   sendMessage: async (messageData) => {
     const { selectedUser, messages } = get();
     try {
-      const res = await axiosInstance.post(`/api/messages/send/${selectedUser._id}`, messageData);
+      const token = localStorage.getItem("jwtToken");
+      const res = await axiosInstance.post(`/api/messages/send/${selectedUser._id}`, messageData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       set((state) => ({
         messages: [...state.messages, res.data],
       }));
