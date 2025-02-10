@@ -25,7 +25,7 @@ const LoginPage = () => {
         navigate("/dashboard");
       } else {
         // Handle missing user data
-        console.error("Login response missing user data");
+        console.error("Login response missing user data" , response);
       }
     } catch (err) {
       console.error("Login error:", err);

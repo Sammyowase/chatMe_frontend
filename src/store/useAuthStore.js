@@ -4,7 +4,6 @@ import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 import Cookies from 'js-cookie';
 
-
 const BASE_URL = "https://chatme-backend-nyim.onrender.com";
 
 export const useAuthStore = create((set, get) => ({
@@ -78,8 +77,9 @@ export const useAuthStore = create((set, get) => ({
       });
       console.log("Login Response:", res.data);
 
-      if (res.data?.user) {
-        set({ authUser: res.data.user });
+      // Handle the login response according to the structure you provided
+      if (res.data && res.data._id) {
+        set({ authUser: res.data }); // Since the user data is already in the response, we set it directly
         toast.success("Logged in successfully");
         get().connectSocket();
       } else {
