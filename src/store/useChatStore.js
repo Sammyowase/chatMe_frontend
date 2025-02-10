@@ -13,16 +13,10 @@ export const useChatStore = create((set, get) => ({
   getUsers: async () => {
     set({ isUsersLoading: true });
     try {
-      const token = localStorage.getItem("jwtToken");
-      const res = await axiosInstance.get("/messages/users", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await axiosInstance.get("/messages/users", { withCredentials: true });
       set({ users: res.data });
     } catch (error) {
-      const errorMessage = error.response?.data?.message || "Something went wrong!";
-      toast.error(errorMessage);
+      toast.error(error.response?.data?.message || "Failed to fetch users");
     } finally {
       set({ isUsersLoading: false });
     }
@@ -31,36 +25,26 @@ export const useChatStore = create((set, get) => ({
   getMessages: async (userId) => {
     set({ isMessagesLoading: true });
     try {
-      const token = localStorage.getItem("jwtToken");
-      const res = await axiosInstance.get(`/messages/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await axiosInstance.get(`/messages/${userId}`, { withCredentials: true });
       set({ messages: res.data });
     } catch (error) {
-      const errorMessage = error.response?.data?.message || "Something went wrong!";
-      toast.error(errorMessage);
+      toast.error(error.response?.data?.message || "Failed to fetch messages");
     } finally {
       set({ isMessagesLoading: false });
     }
   },
 
   sendMessage: async (messageData) => {
-    const { selectedUser, messages } = get();
     try {
-      const token = localStorage.getItem("jwtToken");
+      const { selectedUser, messages } = get();
+      if (!selectedUser) throw new Error("No user selected");
+
       const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        withCredentials: true,
       });
-      set((state) => ({
-        messages: [...state.messages, res.data],
-      }));
+      set({ messages: [...messages, res.data] });
     } catch (error) {
-      const errorMessage = error.response?.data?.message || "Something went wrong!";
-      toast.error(errorMessage);
+      toast.error(error.response?.data?.message || "Failed to send message");
     }
   },
 
@@ -68,24 +52,19 @@ export const useChatStore = create((set, get) => ({
     const { selectedUser } = get();
     const socket = useAuthStore.getState().socket;
 
-    if (!selectedUser || !socket) return; // Guard clause to ensure socket is available
+    if (!selectedUser || !socket) return;
 
-    // Unsubscribe from the previous user
     get().unsubscribeFromMessages();
 
     socket.on("newMessage", (newMessage) => {
-      const isMessageSentFromSelectedUser = newMessage.senderId === selectedUser._id;
-      if (!isMessageSentFromSelectedUser) return;
-
-      set({
-        messages: [...get().messages, newMessage],
-      });
+      if (newMessage.senderId !== selectedUser._id) return;
+      set({ messages: [...get().messages, newMessage] });
     });
   },
 
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
-    socket.off("newMessage");
+    if (socket) socket.off("newMessage");
   },
 
   setSelectedUser: (selectedUser) => set({ selectedUser }),
