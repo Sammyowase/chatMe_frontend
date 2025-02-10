@@ -2,7 +2,8 @@ import { create } from "zustand";
 import { axiosInstance } from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
-import Cookies from "js-cookie";
+import Cookies from 'js-cookie';
+
 
 const BASE_URL = "https://chatme-backend-nyim.onrender.com";
 
