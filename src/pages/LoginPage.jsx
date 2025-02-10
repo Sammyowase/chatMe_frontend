@@ -1,20 +1,35 @@
 import { useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import AuthImagePattern from "../components/AuthImagePattern";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2, Lock, Mail, MessageSquare } from "lucide-react";
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-  const { login, isLoggingIn } = useAuthStore();
+  const [formData, setFormData] = useState({ email: "", password: "" });
+  const { login, isLoggingIn, setAuthUser, error } = useAuthStore();  // Assuming setAuthUser stores user data
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    login(formData);
+    try {
+      // Call the login function and wait for response
+      const response = await login(formData);
+
+      // Check if the response contains user data (e.g. user object)
+      if (response && response._id) {
+        // Store user data in state (for user-specific actions, e.g. dashboard)
+        setAuthUser(response);
+
+        // Redirect user to the dashboard or home page upon successful login
+        navigate("/dashboard");
+      } else {
+        // Handle missing user data
+        console.error("Login response missing user data");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+    }
   };
 
   return (
@@ -25,10 +40,7 @@ const LoginPage = () => {
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="flex flex-col items-center gap-2 group">
-              <div
-                className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20
-              transition-colors"
-              >
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                 <MessageSquare className="w-6 h-6 text-primary" />
               </div>
               <h1 className="text-2xl font-bold mt-2">Welcome Back</h1>
@@ -85,6 +97,9 @@ const LoginPage = () => {
               </div>
             </div>
 
+            {/* Error message display */}
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+
             <button type="submit" className="btn btn-primary w-full" disabled={isLoggingIn}>
               {isLoggingIn ? (
                 <>
@@ -116,4 +131,5 @@ const LoginPage = () => {
     </div>
   );
 };
+
 export default LoginPage;
